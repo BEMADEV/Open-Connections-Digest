@@ -34,13 +34,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EntityFramework">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
+      <HintPath>$(SolutionDir)RockWeb\Bin\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <HintPath>$(SolutionDir)RockWeb\Bin\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
-    <Reference Include="Quartz">
-      <HintPath>..\RockWeb\Bin\Quartz.dll</HintPath>
+    <Reference Include="Quartz, Version=2.0.0.100, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SolutionDir)RockWeb\Bin\Quartz.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -62,16 +63,16 @@
     <Compile Include="SystemGuid\SystemEmail.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Rock.Common\Rock.Common.csproj">
+    <ProjectReference Include="$(SolutionDir)Rock.Common\Rock.Common.csproj">
       <Project>{13568622-324e-4493-b605-c9896e725d30}</Project>
       <Name>Rock.Common</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Rock.Lava.Shared\Rock.Lava.Shared.csproj">
+    <ProjectReference Include="$(SolutionDir)Rock.Lava.Shared\Rock.Lava.Shared.csproj">
       <Project>{8820cd93-70ee-496d-b17b-0c4c68dd4957}</Project>
       <Name>Rock.Lava.Shared</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Rock\Rock.csproj">
-      <Project>{185A31D7-3037-4DAE-8797-0459849A84BD}</Project>
+    <ProjectReference Include="$(SolutionDir)Rock\Rock.csproj">
+      <Project>{185a31d7-3037-4dae-8797-0459849a84bd}</Project>
       <Name>Rock</Name>
     </ProjectReference>
   </ItemGroup>
@@ -86,7 +87,7 @@
     <!-- There may be a better way of building this reference, but I don't see it -->
     <MSBuildCommunityTasksPath>$(SolutionDir)\packages\MSBuildTasks.1.5.0.235\tools</MSBuildCommunityTasksPath>
   </PropertyGroup>
-  <Import Project="..\packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets" Condition="Exists('..\packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" />
+  <Import Project="$(SolutionDir)packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets" Condition="Exists('$(SolutionDir)packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" />
   <PropertyGroup>
     <BuildDir>builds</BuildDir>
   </PropertyGroup>
@@ -136,12 +137,11 @@
     <Message Text="Version: $(Major).$(Minor).$(Build).$(Revision)" />
     <Zip Files="@(ZipFiles)" WorkingDirectory="$(BuildDir)\tmp\" ZipFileName="$(PackageOut)\OpenConnectionsDigest-v$(Major).$(Minor).$(Build).$(Revision).plugin" ZipLevel="9" />
   </Target>
-  <Import Project="..\packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets" Condition="Exists('..\packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets'))" />
+    <Error Condition="!Exists('$(SolutionDir)packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets'))" />
   </Target>
   <Target Name="UpdateAssemblyVersion" Condition="'$(Configuration)' == 'Release'">
     <!-- 
@@ -168,4 +168,9 @@
     </ItemGroup>
     <RegexTransform Items="@(RegexTransform)" />
   </Target>
+  <PropertyGroup>
+    <PostBuildEvent>
+    xcopy /Y /R "$(ProjectDir)bin\Debug\com.bemaservices.OpenConnectionsDigest.dll" "$(SolutionDir)RockWeb\bin"
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>
