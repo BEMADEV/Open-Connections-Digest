@@ -6,6 +6,7 @@ using System.Linq;
 using Quartz;
 
 using Rock;
+using Rock.Jobs;
 using Rock.Attribute;
 using Rock.Communication;
 using Rock.Data;
@@ -23,20 +24,26 @@ namespace com.bemaservices.OpenConnectionsDigest.Jobs
     [BooleanField( "Include All Requests", "Should the email digest include a line for every connection request?", true, "" )]
 
     [DisallowConcurrentExecution]
-    public class SendOpenConnectionsDigestEmail : IJob
+    public class SendOpenConnectionsDigestEmail : RockJob
     {
-        public virtual void Execute( IJobExecutionContext context )
+        public override void Execute()
         {
-            JobDataMap dataMap = context.JobDetail.JobDataMap;
             var rockContext = new RockContext();
             var groupService = new GroupService( rockContext );
             var groupMemberService = new GroupMemberService( rockContext );
             var connectionRequestService = new ConnectionRequestService( rockContext );
+            var systemCommunicationService = new SystemCommunicationService( rockContext );
 
-            var group = groupService.GetByGuid( dataMap.GetString( "ConnectionGroup" ).AsGuid() );
+            var group = groupService.GetByGuid( GetAttributeValue( "ConnectionGroup" ).AsGuid() );
 
-            var systemCommunication = dataMap.GetString( "SystemCommunication" ).AsGuidOrNull();
-            if ( !systemCommunication.HasValue )
+            SystemCommunication systemCommunication = null;
+            var systemCommunicationGuid = GetAttributeValue( "SystemCommunication" ).AsGuidOrNull();
+            if ( systemCommunicationGuid != null )
+            {
+                systemCommunication = systemCommunicationService.Get( systemCommunicationGuid.Value );
+            }
+
+            if ( systemCommunication == null )
             {
                 throw new Exception( "System Communication is required!" );
             }
@@ -59,10 +66,10 @@ namespace com.bemaservices.OpenConnectionsDigest.Jobs
             }
 
 
-            var connectionOpportunities = dataMap.GetString( "ConnectionOpportunities" ).SplitDelimitedValues();
+            var connectionOpportunities = GetAttributeValue( "ConnectionOpportunities" ).SplitDelimitedValues();
 
             // get job type id
-            int jobId = Convert.ToInt16( context.JobDetail.Description );
+            int jobId = Convert.ToInt16( this.ServiceJobId );
             var jobService = new ServiceJobService( rockContext );
             var job = jobService.Get( jobId );
 
@@ -117,8 +124,8 @@ namespace com.bemaservices.OpenConnectionsDigest.Jobs
                 mergeFields.Add( "CriticalConnectionRequestIds", criticalConnectionRequests );
                 mergeFields.Add( "Person", person );
                 mergeFields.Add( "LastRunDate", job.LastSuccessfulRunDateTime );
-                mergeFields.Add( "IncludeOpportunityBreakdown", dataMap.GetString( "IncludeOpportunityBreakdown" ).AsBoolean() );
-                mergeFields.Add( "IncludeAllRequests", dataMap.GetString( "IncludeAllRequests" ).AsBoolean() );
+                mergeFields.Add( "IncludeOpportunityBreakdown", GetAttributeValue( "IncludeOpportunityBreakdown" ).AsBoolean() );
+                mergeFields.Add( "IncludeAllRequests", GetAttributeValue( "IncludeAllRequests" ).AsBoolean() );
 
                 recipients.Add( new RockEmailMessageRecipient( person, mergeFields ) );
 
@@ -127,13 +134,13 @@ namespace com.bemaservices.OpenConnectionsDigest.Jobs
             // If we have valid recipients, send the email
             if ( recipients.Count > 0 )
             {
-                RockEmailMessage email = new RockEmailMessage( systemCommunication.Value );
+                RockEmailMessage email = new RockEmailMessage( systemCommunication.Guid );
                 email.SetRecipients( recipients );
-                email.CreateCommunicationRecord = dataMap.GetString( "SaveCommunicationHistory" ).AsBoolean();
+                email.CreateCommunicationRecord = GetAttributeValue( "SaveCommunicationHistory" ).AsBoolean();
                 email.Send();
             }
 
-            context.Result = string.Format( "{0} Connection reminders sent", recipients.Count );
+            this.Result = string.Format( "{0} Connection reminders sent", recipients.Count );
 
         }
     }
